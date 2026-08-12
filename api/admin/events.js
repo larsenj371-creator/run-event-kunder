@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
     await ensureSchema();
 
     if (req.method === 'GET') {
-      const { rows: events } = await sql`SELECT event_id, title, created_at FROM booking_events ORDER BY created_at DESC`;
+      const { rows: events } = await sql`SELECT id AS event_number, event_id, title, max_guests, created_at FROM booking_events ORDER BY created_at DESC`;
       const { rows: slots } = await sql`
         SELECT s.event_id, s.slot_id, s.label, s.capacity, COUNT(b.id)::int AS booked
         FROM booking_slots s
@@ -44,11 +44,12 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = await readJsonBody(req);
-      const { event_id: eventId, title, slots } = body;
+      const { event_id: eventId, title, slots, max_guests: rawMaxGuests } = body;
       if (!eventId || !title || !Array.isArray(slots) || !slots.length) {
         res.status(400).json({ message: 'Udfyld event-ID, titel og mindst ét tidspunkt.' });
         return;
       }
+      const maxGuests = Number.isFinite(Number(rawMaxGuests)) ? Math.max(0, Number(rawMaxGuests)) : 0;
       for (const slot of slots) {
         if (!slot.slot_id || !slot.label || !Number.isFinite(Number(slot.capacity)) || Number(slot.capacity) < 1) {
           res.status(400).json({ message: 'Hvert tidspunkt skal have et ID, en label og en kapacitet på mindst 1.' });
@@ -56,10 +57,11 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      await sql`
-        INSERT INTO booking_events (event_id, title)
-        VALUES (${eventId}, ${title})
-        ON CONFLICT (event_id) DO UPDATE SET title = EXCLUDED.title
+      const { rows: upserted } = await sql`
+        INSERT INTO booking_events (event_id, title, max_guests)
+        VALUES (${eventId}, ${title}, ${maxGuests})
+        ON CONFLICT (event_id) DO UPDATE SET title = EXCLUDED.title, max_guests = EXCLUDED.max_guests
+        RETURNING id AS event_number
       `;
 
       const keepIds = slots.map(s => s.slot_id);
@@ -76,7 +78,7 @@ module.exports = async function handler(req, res) {
         `;
       }
 
-      res.status(200).json({ message: 'ok' });
+      res.status(200).json({ message: 'ok', event_number: upserted[0].event_number });
       return;
     }
 

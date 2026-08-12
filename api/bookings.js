@@ -48,6 +48,7 @@ module.exports = async function handler(req, res) {
     slot_id: slotId,
     privacy_consent: consent,
     notes,
+    additional_names: rawAdditionalNames,
   } = body;
 
   const hasName = name || (firstName && lastName);
@@ -60,8 +61,24 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  const additionalNames = Array.isArray(rawAdditionalNames)
+    ? rawAdditionalNames.map(n => String(n || '').trim()).filter(Boolean)
+    : [];
+  const partySize = 1 + additionalNames.length;
+
   try {
     await ensureSchema();
+
+    const { rows: eventRows } = await sql`SELECT id AS event_number, max_guests FROM booking_events WHERE event_id = ${eventId}`;
+    const event = eventRows[0];
+    if (!event) {
+      res.status(404).json({ message: 'Eventet findes ikke.' });
+      return;
+    }
+    if (additionalNames.length > event.max_guests) {
+      res.status(400).json({ message: `Du kan højst tilmelde ${event.max_guests} ekstra ${event.max_guests === 1 ? 'person' : 'personer'} til dette event.` });
+      return;
+    }
 
     const { rows: slotRows } = await sql`
       SELECT s.capacity, s.label, e.title
@@ -76,15 +93,15 @@ module.exports = async function handler(req, res) {
     }
 
     // Count-then-insert: a small race window exists under simultaneous
-    // requests for the last spot in a slot, accepted here given the
+    // requests for the last spots in a slot, accepted here given the
     // human-scale traffic this endpoint sees (form submissions, not a
     // flash sale). The UNIQUE(event_id, slot_id, email) constraint still
     // guarantees no one is double-booked.
-    const { rows: countRows } = await sql`
-      SELECT COUNT(*)::int AS count FROM bookings WHERE event_id = ${eventId} AND slot_id = ${slotId}
+    const { rows: takenRows } = await sql`
+      SELECT COALESCE(SUM(party_size), 0)::int AS taken FROM bookings WHERE event_id = ${eventId} AND slot_id = ${slotId}
     `;
-    if (countRows[0].count >= slot.capacity) {
-      res.status(409).json({ message: 'Der er desværre ikke flere ledige pladser på det valgte tidspunkt.' });
+    if (takenRows[0].taken + partySize > slot.capacity) {
+      res.status(409).json({ message: 'Der er desværre ikke plads nok tilbage på det valgte tidspunkt til hele din tilmelding.' });
       return;
     }
 
@@ -99,9 +116,11 @@ module.exports = async function handler(req, res) {
         email,
         phone,
         eventId,
+        eventNumber: event.event_number,
         eventTitle: slot.title,
         slotLabel: slot.label,
         notes,
+        additionalNames,
       });
     } catch (err) {
       console.error('Shopify customer upsert failed:', err);
@@ -111,8 +130,8 @@ module.exports = async function handler(req, res) {
 
     try {
       await sql`
-        INSERT INTO bookings (event_id, slot_id, name, email, phone, notes, shopify_customer_id)
-        VALUES (${eventId}, ${slotId}, ${fullName}, ${email}, ${phone}, ${notes || null}, ${customerId})
+        INSERT INTO bookings (event_id, slot_id, name, email, phone, notes, party_size, additional_names, shopify_customer_id)
+        VALUES (${eventId}, ${slotId}, ${fullName}, ${email}, ${phone}, ${notes || null}, ${partySize}, ${additionalNames.length ? JSON.stringify(additionalNames) : null}, ${customerId})
       `;
     } catch (err) {
       if (String(err.message).includes('bookings_event_id_slot_id_email_key')) {
@@ -122,7 +141,7 @@ module.exports = async function handler(req, res) {
       throw err;
     }
 
-    res.status(200).json({ message: 'ok', customer_id: customerId });
+    res.status(200).json({ message: 'ok', customer_id: customerId, event_number: event.event_number });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Der opstod en fejl. Prøv venligst igen.' });

@@ -71,6 +71,8 @@
       <input id="event_id" placeholder="fx run-event-2026">
       <label>Titel</label>
       <input id="title" placeholder="fx Løbeevent september 2026">
+      <label>Maks. antal ekstra personer pr. tilmelding <span style="font-weight:400;color:var(--muted)">(0 = kan kun tilmelde sig selv)</span></label>
+      <input id="max_guests" type="number" min="0" value="0">
       <label>Tider</label>
       <div id="slots"></div>
       <button type="button" class="secondary" onclick="addSlotRow()">+ Tilføj tidspunkt</button>
@@ -138,15 +140,17 @@
     document.getElementById('event_id').value = '';
     document.getElementById('event_id').disabled = false;
     document.getElementById('title').value = '';
+    document.getElementById('max_guests').value = 0;
     document.getElementById('slots').innerHTML = '';
     addSlotRow();
   }
 
   function editEvent(ev) {
-    document.getElementById('form-title').textContent = 'Redigér: ' + ev.title;
+    document.getElementById('form-title').textContent = 'Redigér: ' + ev.title + ' (Event-nr. ' + ev.event_number + ')';
     document.getElementById('event_id').value = ev.event_id;
     document.getElementById('event_id').disabled = true;
     document.getElementById('title').value = ev.title;
+    document.getElementById('max_guests').value = ev.max_guests;
     document.getElementById('slots').innerHTML = '';
     ev.slots.forEach(addSlotRow);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -157,13 +161,14 @@
     error.hidden = true;
     const event_id = document.getElementById('event_id').value.trim();
     const title = document.getElementById('title').value.trim();
+    const max_guests = Number(document.getElementById('max_guests').value) || 0;
     const slots = Array.from(document.querySelectorAll('.slot-row')).map(row => ({
       slot_id: row.querySelector('.slot-id').value.trim(),
       label: row.querySelector('.slot-label').value.trim(),
       capacity: Number(row.querySelector('.slot-capacity').value),
     }));
 
-    api('/api/admin/events', { method: 'POST', body: JSON.stringify({ event_id, title, slots }) })
+    api('/api/admin/events', { method: 'POST', body: JSON.stringify({ event_id, title, max_guests, slots }) })
       .then(() => { resetForm(); loadEvents(); loadBookings(); })
       .catch((err) => { error.textContent = err.message; error.hidden = false; });
   }
@@ -183,8 +188,8 @@
       if (!events.length) { list.textContent = 'Ingen events oprettet endnu.'; return; }
       list.innerHTML = events.map(e => `
         <div class="event">
-          <h3>${e.title}</h3>
-          <div class="meta">Event-ID: <code>${e.event_id}</code></div>
+          <h3>${e.title} <span style="color:var(--muted);font-weight:400">#${e.event_number}</span></h3>
+          <div class="meta">Event-ID: <code>${e.event_id}</code> · Maks. ekstra personer: ${e.max_guests}</div>
           <div class="slot-list">
             ${e.slots.map(s => `<div><span>${s.label}</span><span>${s.booked}/${s.capacity} booket</span></div>`).join('') || '<div>Ingen tider</div>'}
           </div>
@@ -204,19 +209,24 @@
       if (!bookings.length) { list.textContent = 'Ingen tilmeldinger endnu.'; return; }
       list.innerHTML = `
         <table>
-          <thead><tr><th>Navn</th><th>Email</th><th>Telefon</th><th>Event</th><th>Tidspunkt</th><th>Noter</th><th>Tilmeldt</th></tr></thead>
+          <thead><tr><th>Navn</th><th>Email</th><th>Telefon</th><th>Event</th><th>Tidspunkt</th><th>Personer</th><th>Noter</th><th>Tilmeldt</th></tr></thead>
           <tbody>
-            ${bookings.map(b => `
+            ${bookings.map(b => {
+              const guests = b.additional_names ? JSON.parse(b.additional_names) : [];
+              const people = b.party_size > 1 ? `${b.party_size} (${b.name} + ${guests.join(', ')})` : '1';
+              return `
               <tr>
                 <td>${b.name}</td>
                 <td>${b.email}</td>
                 <td>${b.phone}</td>
-                <td>${b.event_title}</td>
+                <td>${b.event_title} #${b.event_number}</td>
                 <td>${b.slot_label || b.slot_id}</td>
+                <td>${people}</td>
                 <td>${b.notes || ''}</td>
                 <td>${new Date(b.created_at).toLocaleString('da-DK')}</td>
               </tr>
-            `).join('')}
+            `;
+            }).join('')}
           </tbody>
         </table>
       `;

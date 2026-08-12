@@ -19,8 +19,8 @@ module.exports = async function handler(req, res) {
 
     const { rows } = eventId
       ? await sql`
-          SELECT b.id, b.event_id, e.title AS event_title, b.slot_id, s.label AS slot_label,
-                 b.name, b.email, b.phone, b.notes, b.created_at
+          SELECT b.id, b.event_id, e.id AS event_number, e.title AS event_title, b.slot_id, s.label AS slot_label,
+                 b.name, b.email, b.phone, b.notes, b.party_size, b.additional_names, b.created_at
           FROM bookings b
           JOIN booking_events e ON e.event_id = b.event_id
           LEFT JOIN booking_slots s ON s.event_id = b.event_id AND s.slot_id = b.slot_id
@@ -28,8 +28,8 @@ module.exports = async function handler(req, res) {
           ORDER BY b.created_at DESC
         `
       : await sql`
-          SELECT b.id, b.event_id, e.title AS event_title, b.slot_id, s.label AS slot_label,
-                 b.name, b.email, b.phone, b.notes, b.created_at
+          SELECT b.id, b.event_id, e.id AS event_number, e.title AS event_title, b.slot_id, s.label AS slot_label,
+                 b.name, b.email, b.phone, b.notes, b.party_size, b.additional_names, b.created_at
           FROM bookings b
           JOIN booking_events e ON e.event_id = b.event_id
           LEFT JOIN booking_slots s ON s.event_id = b.event_id AND s.slot_id = b.slot_id

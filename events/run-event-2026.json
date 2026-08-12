@@ -1,0 +1,9 @@
+{
+  "event_id": "run-event-2026",
+  "title": "Løbeevent (placeholder – ret mig)",
+  "slots": [
+    { "slot_id": "2026-09-12-1700", "label": "12. sep kl. 17:00", "capacity": 25 },
+    { "slot_id": "2026-09-12-1830", "label": "12. sep kl. 18:30", "capacity": 25 },
+    { "slot_id": "2026-09-13-1000", "label": "13. sep kl. 10:00", "capacity": 25 }
+  ]
+}

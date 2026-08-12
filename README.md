@@ -28,8 +28,11 @@ kode der oprettede kunden i Shopify. Dette repo er det endpoint.
 
 ## Events og tider
 
-Events/slots administreres ikke i Shopify-temaet (kun `event_id` og et
-overordnet kapacitetstal ligger der) — de synces til Postgres med:
+**Admin-side**: `https://<vercel-domæne>/admin.html` — opret/redigér/slet
+events og tider, og se en oversigt over alle tilmeldinger, uden at røre kode.
+Kræver login med `ADMIN_SECRET` (sat som miljøvariabel, se nedenfor).
+
+Alternativt via kommandolinjen:
 
 ```bash
 node scripts/sync-event.js events/run-event-2026.example.json
@@ -47,6 +50,7 @@ opretter et nyt event eller ændrer tider/kapacitet.
      `read_customers`).
    - `SHOPIFY_API_SECRET` er den samme "Client secret" som jeres eksisterende
      custom app på intersport-dk bruger til webhook-verifikation.
+   - `ADMIN_SECRET` er en selvvalgt adgangskode til `/admin.html`.
 2. **App proxy**: i Shopify Partner Dashboard for jeres custom app, under
    "App proxy", sæt:
    - Subpath prefix: `apps`

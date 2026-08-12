@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event booking — admin</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e2e2e5;
+    --text: #1a1a1e;
+    --muted: #6b6b73;
+    --accent: #1f6feb;
+    --danger: #c62828;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131316;
+      --card: #1c1c20;
+      --border: #2c2c31;
+      --text: #f0f0f2;
+      --muted: #9a9aa2;
+      --accent: #5b9dff;
+      --danger: #ff6b6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 24px 16px 60px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+  label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; }
+  input, textarea { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.9rem; margin-bottom: 12px; }
+  button { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; padding: 8px 16px; font-size: 0.85rem; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--text); border-color: var(--border); }
+  button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+  .slot-row { display: grid; grid-template-columns: 1fr 2fr 90px 32px; gap: 8px; align-items: start; }
+  .event { border-bottom: 1px solid var(--border); padding: 12px 0; }
+  .event:last-child { border-bottom: none; }
+  .event h3 { margin: 0 0 4px; font-size: 1rem; }
+  .event .meta { color: var(--muted); font-size: 0.8rem; margin-bottom: 8px; }
+  .slot-list { font-size: 0.85rem; }
+  .slot-list div { display: flex; justify-content: space-between; padding: 3px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  #gate { max-width: 320px; margin: 80px auto; }
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .error { color: var(--danger); font-size: 0.85rem; margin: 8px 0; }
+  select { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); margin-bottom: 12px; }
+</style>
+</head>
+<body>
+  <div id="gate" class="card">
+    <h1>Log ind</h1>
+    <p class="sub">Adgangskode til event-administration</p>
+    <input type="password" id="secret" placeholder="Adgangskode">
+    <button onclick="login()">Log ind</button>
+    <p class="error" id="gate-error" hidden></p>
+  </div>
+
+  <div id="app" class="wrap" hidden>
+    <h1>Event booking</h1>
+    <p class="sub">Opret og redigér events + tider. Ændringer er live med det samme.</p>
+
+    <div class="card">
+      <h2 id="form-title">Nyt event</h2>
+      <label>Event-ID <span style="font-weight:400;color:var(--muted)">(bruges i temaeditoren, må ikke ændres bagefter)</span></label>
+      <input id="event_id" placeholder="fx run-event-2026">
+      <label>Titel</label>
+      <input id="title" placeholder="fx Løbeevent september 2026">
+      <label>Tider</label>
+      <div id="slots"></div>
+      <button type="button" class="secondary" onclick="addSlotRow()">+ Tilføj tidspunkt</button>
+      <div class="row">
+        <button onclick="saveEvent()">Gem event</button>
+        <button type="button" class="secondary" onclick="resetForm()">Ryd formular</button>
+      </div>
+      <p class="error" id="form-error" hidden></p>
+    </div>
+
+    <div class="card">
+      <h2>Eksisterende events</h2>
+      <div id="events-list">Henter …</div>
+    </div>
+
+    <div class="card">
+      <h2>Tilmeldinger</h2>
+      <label>Filtrér på event</label>
+      <select id="bookings-filter" onchange="loadBookings()"><option value="">Alle events</option></select>
+      <div id="bookings-list">Henter …</div>
+    </div>
+  </div>
+
+<script>
+  let secret = sessionStorage.getItem('admin_secret') || '';
+
+  function api(path, opts = {}) {
+    return fetch(path, { ...opts, headers: { ...(opts.headers || {}), 'x-admin-secret': secret, 'Content-Type': 'application/json' } })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Der opstod en fejl.');
+        return data;
+      });
+  }
+
+  function login() {
+    secret = document.getElementById('secret').value;
+    api('/api/admin/events').then(() => {
+      sessionStorage.setItem('admin_secret', secret);
+      document.getElementById('gate').hidden = true;
+      document.getElementById('app').hidden = false;
+      loadEvents();
+      loadBookings();
+    }).catch(() => {
+      document.getElementById('gate-error').textContent = 'Forkert adgangskode.';
+      document.getElementById('gate-error').hidden = false;
+    });
+  }
+
+  function addSlotRow(slot) {
+    const wrap = document.getElementById('slots');
+    const row = document.createElement('div');
+    row.className = 'slot-row';
+    row.innerHTML = `
+      <input placeholder="slot-id, fx 2026-09-12-1700" class="slot-id" value="${slot?.slot_id || ''}">
+      <input placeholder="Label, fx 12. sep kl. 17:00" class="slot-label" value="${slot?.label || ''}">
+      <input placeholder="Pladser" type="number" min="1" class="slot-capacity" value="${slot?.capacity || 25}">
+      <button type="button" class="secondary" onclick="this.parentElement.remove()">×</button>
+    `;
+    wrap.appendChild(row);
+  }
+
+  function resetForm() {
+    document.getElementById('form-title').textContent = 'Nyt event';
+    document.getElementById('event_id').value = '';
+    document.getElementById('event_id').disabled = false;
+    document.getElementById('title').value = '';
+    document.getElementById('slots').innerHTML = '';
+    addSlotRow();
+  }
+
+  function editEvent(ev) {
+    document.getElementById('form-title').textContent = 'Redigér: ' + ev.title;
+    document.getElementById('event_id').value = ev.event_id;
+    document.getElementById('event_id').disabled = true;
+    document.getElementById('title').value = ev.title;
+    document.getElementById('slots').innerHTML = '';
+    ev.slots.forEach(addSlotRow);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function saveEvent() {
+    const error = document.getElementById('form-error');
+    error.hidden = true;
+    const event_id = document.getElementById('event_id').value.trim();
+    const title = document.getElementById('title').value.trim();
+    const slots = Array.from(document.querySelectorAll('.slot-row')).map(row => ({
+      slot_id: row.querySelector('.slot-id').value.trim(),
+      label: row.querySelector('.slot-label').value.trim(),
+      capacity: Number(row.querySelector('.slot-capacity').value),
+    }));
+
+    api('/api/admin/events', { method: 'POST', body: JSON.stringify({ event_id, title, slots }) })
+      .then(() => { resetForm(); loadEvents(); loadBookings(); })
+      .catch((err) => { error.textContent = err.message; error.hidden = false; });
+  }
+
+  function deleteEvent(eventId) {
+    if (!confirm('Slet eventet "' + eventId + '" og dets tider? Tilmeldinger bevares i oversigten.')) return;
+    api('/api/admin/events', { method: 'DELETE', body: JSON.stringify({ event_id: eventId }) })
+      .then(() => { loadEvents(); loadBookings(); });
+  }
+
+  function loadEvents() {
+    api('/api/admin/events').then(({ events }) => {
+      const list = document.getElementById('events-list');
+      const filter = document.getElementById('bookings-filter');
+      filter.innerHTML = '<option value="">Alle events</option>' + events.map(e => `<option value="${e.event_id}">${e.title}</option>`).join('');
+
+      if (!events.length) { list.textContent = 'Ingen events oprettet endnu.'; return; }
+      list.innerHTML = events.map(e => `
+        <div class="event">
+          <h3>${e.title}</h3>
+          <div class="meta">Event-ID: <code>${e.event_id}</code></div>
+          <div class="slot-list">
+            ${e.slots.map(s => `<div><span>${s.label}</span><span>${s.booked}/${s.capacity} booket</span></div>`).join('') || '<div>Ingen tider</div>'}
+          </div>
+          <div class="row">
+            <button type="button" class="secondary" onclick='editEvent(${JSON.stringify(e).replace(/'/g, "&apos;")})'>Redigér</button>
+            <button type="button" class="danger" onclick="deleteEvent('${e.event_id}')">Slet</button>
+          </div>
+        </div>
+      `).join('');
+    });
+  }
+
+  function loadBookings() {
+    const eventId = document.getElementById('bookings-filter').value;
+    api('/api/admin/bookings' + (eventId ? '?event_id=' + encodeURIComponent(eventId) : '')).then(({ bookings }) => {
+      const list = document.getElementById('bookings-list');
+      if (!bookings.length) { list.textContent = 'Ingen tilmeldinger endnu.'; return; }
+      list.innerHTML = `
+        <table>
+          <thead><tr><th>Navn</th><th>Email</th><th>Telefon</th><th>Event</th><th>Tidspunkt</th><th>Noter</th><th>Tilmeldt</th></tr></thead>
+          <tbody>
+            ${bookings.map(b => `
+              <tr>
+                <td>${b.name}</td>
+                <td>${b.email}</td>
+                <td>${b.phone}</td>
+                <td>${b.event_title}</td>
+                <td>${b.slot_label || b.slot_id}</td>
+                <td>${b.notes || ''}</td>
+                <td>${new Date(b.created_at).toLocaleString('da-DK')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    });
+  }
+
+  addSlotRow();
+  if (secret) {
+    api('/api/admin/events').then(() => {
+      document.getElementById('gate').hidden = true;
+      document.getElementById('app').hidden = false;
+      loadEvents();
+      loadBookings();
+    }).catch(() => { sessionStorage.removeItem('admin_secret'); });
+  }
+</script>
+</body>
+</html>

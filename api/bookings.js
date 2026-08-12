@@ -38,9 +38,20 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const { name, email, phone, event_id: eventId, slot_id: slotId, privacy_consent: consent } = body;
+  const {
+    name,
+    first_name: firstName,
+    last_name: lastName,
+    email,
+    phone,
+    event_id: eventId,
+    slot_id: slotId,
+    privacy_consent: consent,
+    notes,
+  } = body;
 
-  if (!name || !email || !phone || !eventId || !slotId) {
+  const hasName = name || (firstName && lastName);
+  if (!hasName || !email || !phone || !eventId || !slotId) {
     res.status(400).json({ message: 'Udfyld venligst alle felter.' });
     return;
   }
@@ -77,15 +88,20 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    const fullName = name || `${firstName} ${lastName}`.trim();
+
     let customerId;
     try {
       customerId = await upsertCustomerForBooking({
         name,
+        firstName,
+        lastName,
         email,
         phone,
         eventId,
         eventTitle: slot.title,
         slotLabel: slot.label,
+        notes,
       });
     } catch (err) {
       console.error('Shopify customer upsert failed:', err);
@@ -95,8 +111,8 @@ module.exports = async function handler(req, res) {
 
     try {
       await sql`
-        INSERT INTO bookings (event_id, slot_id, name, email, phone, shopify_customer_id)
-        VALUES (${eventId}, ${slotId}, ${name}, ${email}, ${phone}, ${customerId})
+        INSERT INTO bookings (event_id, slot_id, name, email, phone, notes, shopify_customer_id)
+        VALUES (${eventId}, ${slotId}, ${fullName}, ${email}, ${phone}, ${notes || null}, ${customerId})
       `;
     } catch (err) {
       if (String(err.message).includes('bookings_event_id_slot_id_email_key')) {

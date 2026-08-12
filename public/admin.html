@@ -37,7 +37,10 @@
   button { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; padding: 8px 16px; font-size: 0.85rem; cursor: pointer; }
   button.secondary { background: transparent; color: var(--text); border-color: var(--border); }
   button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
-  .slot-row { display: grid; grid-template-columns: 1fr 2fr 90px 32px; gap: 8px; align-items: start; }
+  .slot-entry { margin-bottom: 10px; }
+  .slot-row { display: grid; grid-template-columns: 1fr 100px 80px 32px; gap: 8px; align-items: center; }
+  .slot-row input { margin-bottom: 0; }
+  .slot-preview { color: var(--muted); font-size: 0.78rem; margin: 4px 0 0; }
   .event { border-bottom: 1px solid var(--border); padding: 12px 0; }
   .event:last-child { border-bottom: none; }
   .event h3 { margin: 0 0 4px; font-size: 1rem; }
@@ -122,17 +125,47 @@
     });
   }
 
+  const MONTHS_DA = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+
+  function formatSlotLabel(dateStr, timeStr) {
+    if (!dateStr || !timeStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return `${d}. ${MONTHS_DA[m - 1]} kl. ${timeStr}`;
+  }
+
+  // Existing slots were created with slot_id "YYYY-MM-DD-HHMM" (see
+  // scripts/sync-event.js), so editing an event can populate the date/time
+  // pickers straight from the stored id instead of losing that data.
+  function parseSlotId(slotId) {
+    const match = /^(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})$/.exec(slotId || '');
+    if (!match) return null;
+    return { date: match[1], time: `${match[2]}:${match[3]}` };
+  }
+
   function addSlotRow(slot) {
     const wrap = document.getElementById('slots');
-    const row = document.createElement('div');
-    row.className = 'slot-row';
-    row.innerHTML = `
-      <input placeholder="slot-id, fx 2026-09-12-1700" class="slot-id" value="${slot?.slot_id || ''}">
-      <input placeholder="Label, fx 12. sep kl. 17:00" class="slot-label" value="${slot?.label || ''}">
-      <input placeholder="Pladser" type="number" min="1" class="slot-capacity" value="${slot?.capacity || 25}">
-      <button type="button" class="secondary" onclick="this.parentElement.remove()">×</button>
+    const parsed = slot ? parseSlotId(slot.slot_id) : null;
+    const entry = document.createElement('div');
+    entry.className = 'slot-entry';
+    entry.innerHTML = `
+      <div class="slot-row">
+        <input type="date" class="slot-date" value="${parsed?.date || ''}">
+        <input type="time" class="slot-time" value="${parsed?.time || ''}">
+        <input placeholder="Pladser" type="number" min="1" class="slot-capacity" value="${slot?.capacity || 25}">
+        <button type="button" class="secondary" onclick="this.closest('.slot-entry').remove()">×</button>
+      </div>
+      <p class="slot-preview" data-preview>${slot?.label ? 'Gemt som: ' + slot.label : 'Vælg dato og tid'}</p>
     `;
-    wrap.appendChild(row);
+    const dateInput = entry.querySelector('.slot-date');
+    const timeInput = entry.querySelector('.slot-time');
+    const preview = entry.querySelector('[data-preview]');
+    const updatePreview = () => {
+      const label = formatSlotLabel(dateInput.value, timeInput.value);
+      preview.textContent = label ? 'Vises som: ' + label : 'Vælg dato og tid';
+    };
+    dateInput.addEventListener('input', updatePreview);
+    timeInput.addEventListener('input', updatePreview);
+    wrap.appendChild(entry);
   }
 
   function resetForm() {
@@ -162,11 +195,25 @@
     const event_id = document.getElementById('event_id').value.trim();
     const title = document.getElementById('title').value.trim();
     const max_guests = Number(document.getElementById('max_guests').value) || 0;
-    const slots = Array.from(document.querySelectorAll('.slot-row')).map(row => ({
-      slot_id: row.querySelector('.slot-id').value.trim(),
-      label: row.querySelector('.slot-label').value.trim(),
-      capacity: Number(row.querySelector('.slot-capacity').value),
-    }));
+
+    const entries = Array.from(document.querySelectorAll('.slot-entry'));
+    for (const entry of entries) {
+      if (!entry.querySelector('.slot-date').value || !entry.querySelector('.slot-time').value) {
+        error.textContent = 'Vælg både dato og tid for hvert tidspunkt.';
+        error.hidden = false;
+        return;
+      }
+    }
+
+    const slots = entries.map((entry) => {
+      const date = entry.querySelector('.slot-date').value;
+      const time = entry.querySelector('.slot-time').value;
+      return {
+        slot_id: `${date}-${time.replace(':', '')}`,
+        label: formatSlotLabel(date, time),
+        capacity: Number(entry.querySelector('.slot-capacity').value),
+      };
+    });
 
     api('/api/admin/events', { method: 'POST', body: JSON.stringify({ event_id, title, max_guests, slots }) })
       .then(() => { resetForm(); loadEvents(); loadBookings(); })

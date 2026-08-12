@@ -1,0 +1,13 @@
+{
+  "name": "shopify-event-booking",
+  "version": "1.0.0",
+  "description": "App proxy backend for event-booking-run.liquid: available slots + booking submissions, creating/updating the matching Shopify customer for intersport-dk",
+  "private": true,
+  "scripts": {
+    "sync-event": "node scripts/sync-event.js"
+  },
+  "dependencies": {
+    "@vercel/postgres": "^0.10.0",
+    "dotenv": "^17.4.2"
+  }
+}

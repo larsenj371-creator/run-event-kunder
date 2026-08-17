@@ -7,101 +7,392 @@
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #f7f7f8;
+    --bg: #f5f6f8;
+    --canvas: #eef0f3;
     --card: #ffffff;
-    --border: #e2e2e5;
-    --text: #1a1a1e;
-    --muted: #6b6b73;
-    --accent: #1f6feb;
-    --danger: #c62828;
+    --card-hover: #fbfbfc;
+    --border: #e3e5e9;
+    --border-strong: #cdd1d7;
+    --text: #16181d;
+    --muted: #676c76;
+    --muted-2: #8b9099;
+    --accent: #2f6fed;
+    --accent-hover: #2559c7;
+    --accent-soft: #eaf0fe;
+    --success: #1a8a4c;
+    --success-soft: #e8f7ee;
+    --warning: #b7791f;
+    --warning-soft: #fdf3e2;
+    --danger: #d33b3b;
+    --danger-soft: #fdecec;
+    --danger-hover: #b32e2e;
+    --shadow-sm: 0 1px 2px rgba(20, 20, 25, 0.05);
+    --shadow-md: 0 4px 16px rgba(20, 20, 25, 0.08);
+    --shadow-lg: 0 12px 32px rgba(20, 20, 25, 0.14);
+    --radius: 12px;
+    --radius-sm: 8px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #131316;
-      --card: #1c1c20;
-      --border: #2c2c31;
-      --text: #f0f0f2;
-      --muted: #9a9aa2;
-      --accent: #5b9dff;
+      --bg: #101114;
+      --canvas: #0b0c0e;
+      --card: #17181c;
+      --card-hover: #1c1d22;
+      --border: #2a2c32;
+      --border-strong: #393b43;
+      --text: #f1f2f4;
+      --muted: #a3a7b0;
+      --muted-2: #797d87;
+      --accent: #5b8dff;
+      --accent-hover: #7ba1ff;
+      --accent-soft: #1b2740;
+      --success: #3ecb7e;
+      --success-soft: #123322;
+      --warning: #e2a63b;
+      --warning-soft: #3a2c10;
       --danger: #ff6b6b;
+      --danger-soft: #3a1a1a;
+      --danger-hover: #ff8888;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 24px 16px 60px; }
-  .wrap { max-width: 760px; margin: 0 auto; }
-  h1 { font-size: 1.4rem; margin: 0 0 4px; }
-  .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 20px; }
-  label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; }
-  input, textarea { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.9rem; margin-bottom: 12px; }
-  button { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; padding: 8px 16px; font-size: 0.85rem; cursor: pointer; }
-  button.secondary { background: transparent; color: var(--text); border-color: var(--border); }
-  button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
-  .slot-entry { margin-bottom: 10px; }
-  .slot-row { display: grid; grid-template-columns: 1fr 100px 80px 32px; gap: 8px; align-items: center; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--canvas);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+  a { color: var(--accent); }
+  button { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  /* ---------- Login gate ---------- */
+  #gate-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  #gate { width: 100%; max-width: 360px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 24px; box-shadow: var(--shadow-md); }
+  #gate .gate-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+  #gate h1 { font-size: 1.2rem; margin: 0 0 4px; }
+  #gate .sub { color: var(--muted); font-size: 0.88rem; margin: 0 0 18px; }
+
+  /* ---------- App shell ---------- */
+  header.topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+  }
+  .topbar-inner {
+    max-width: 1080px; margin: 0 auto;
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; }
+  .brand-mark { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
+  .brand-text h1 { font-size: 0.98rem; margin: 0; line-height: 1.2; }
+  .brand-text .sub { font-size: 0.76rem; color: var(--muted); }
+  .icon-btn, .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: 1px solid var(--border-strong); background: var(--card); color: var(--text);
+    border-radius: var(--radius-sm); padding: 9px 14px; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; min-height: 40px; transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .btn:hover, .icon-btn:hover { background: var(--card-hover); border-color: var(--muted-2); }
+  .btn:active, .icon-btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn.ghost { background: transparent; border-color: transparent; }
+  .btn.ghost:hover { background: var(--card-hover); }
+  .btn.danger-outline { color: var(--danger); border-color: var(--danger); background: transparent; }
+  .btn.danger-outline:hover { background: var(--danger-soft); }
+  .btn.sm { padding: 6px 10px; font-size: 0.78rem; min-height: 32px; }
+  .btn svg, .icon-btn svg { flex: none; }
+
+  main.wrap { max-width: 1080px; margin: 0 auto; padding: 20px 20px 80px; }
+
+  /* ---------- Stats ---------- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-sm); }
+  .stat-card .label { font-size: 0.76rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
+  .stat-card .value { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; }
+  .stat-card .value small { font-size: 0.9rem; color: var(--muted); font-weight: 500; }
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ---------- Tabs ---------- */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+  .tab-btn {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--muted); font-weight: 600; font-size: 0.9rem; padding: 10px 4px; margin-right: 20px;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-count { background: var(--border); color: var(--muted); font-size: 0.72rem; font-weight: 700; border-radius: 20px; padding: 1px 8px; }
+  .tab-btn.active .tab-count { background: var(--accent-soft); color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+  .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .section-head h2 { font-size: 1rem; margin: 0; }
+  .section-head .sub { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+  /* ---------- Form ---------- */
+  #form-card { margin-bottom: 20px; }
+  .form-body { padding: 18px; }
+  label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  label .hint { font-weight: 400; color: var(--muted); }
+  input, textarea, select {
+    width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong);
+    background: var(--card); color: var(--text); font-size: 0.92rem; min-height: 40px;
+  }
+  input::placeholder { color: var(--muted-2); }
+  .field { margin-bottom: 14px; }
+  .field-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+  @media (max-width: 600px) { .field-grid { grid-template-columns: 1fr; } }
+
+  .slot-entry { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 8px; }
+  .slot-row { display: grid; grid-template-columns: 1fr 110px 90px auto; gap: 8px; align-items: center; }
   .slot-row input { margin-bottom: 0; }
-  .slot-preview { color: var(--muted); font-size: 0.78rem; margin: 4px 0 0; }
-  .event { border-bottom: 1px solid var(--border); padding: 12px 0; }
-  .event:last-child { border-bottom: none; }
-  .event h3 { margin: 0 0 4px; font-size: 1rem; }
-  .event .meta { color: var(--muted); font-size: 0.8rem; margin-bottom: 8px; }
-  .slot-list { font-size: 0.85rem; }
-  .slot-list div { display: flex; justify-content: space-between; padding: 3px 0; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
-  #gate { max-width: 320px; margin: 80px auto; }
-  .row { display: flex; gap: 8px; margin-top: 8px; }
-  .error { color: var(--danger); font-size: 0.85rem; margin: 8px 0; }
-  select { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); margin-bottom: 12px; }
+  .slot-preview { color: var(--muted); font-size: 0.76rem; margin: 6px 0 0; }
+  @media (max-width: 640px) { .slot-row { grid-template-columns: 1fr 1fr; } .slot-row .icon-btn { grid-column: span 2; justify-self: end; } }
+
+  .form-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .form-error, .form-info {
+    display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem; padding: 10px 12px; border-radius: var(--radius-sm); margin-top: 12px;
+  }
+  .form-error { color: var(--danger); background: var(--danger-soft); }
+  .form-info { color: var(--accent); background: var(--accent-soft); }
+
+  /* ---------- Events list ---------- */
+  .events-body { padding: 6px 18px 12px; }
+  .event-item { border-bottom: 1px solid var(--border); padding: 16px 0; }
+  .event-item:last-child { border-bottom: none; }
+  .event-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .event-title { font-size: 1rem; font-weight: 700; margin: 0 0 3px; }
+  .event-meta { color: var(--muted); font-size: 0.8rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .event-meta code { background: var(--bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; font-size: 0.75rem; }
+  .badge { display: inline-flex; align-items: center; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  .badge.num { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .event-actions { display: flex; gap: 6px; }
+
+  .slot-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .slot-item { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; font-size: 0.85rem; }
+  .slot-item .slot-name { display: flex; align-items: center; gap: 8px; }
+  .slot-item .slot-name .past-tag { font-size: 0.68rem; color: var(--muted-2); border: 1px solid var(--border); border-radius: 10px; padding: 0 6px; }
+  .slot-item .slot-count { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .slot-item .slot-count strong { color: var(--text); }
+  .bar-track { grid-column: 1 / -1; height: 6px; border-radius: 4px; background: var(--border); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; background: var(--success); transition: width 0.25s ease; }
+  .bar-fill.warn { background: var(--warning); }
+  .bar-fill.full { background: var(--danger); }
+
+  .empty-state { padding: 34px 18px; text-align: center; color: var(--muted); }
+  .empty-state svg { color: var(--muted-2); margin-bottom: 10px; }
+  .empty-state p { margin: 0; font-size: 0.88rem; }
+  .skeleton { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .skel-line { height: 14px; border-radius: 6px; background: linear-gradient(90deg, var(--border) 25%, var(--card-hover) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* ---------- Bookings ---------- */
+  .filters { display: flex; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .search-wrap { position: relative; flex: 1 1 220px; min-width: 200px; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted-2); pointer-events: none; }
+  .search-wrap input { padding-left: 34px; }
+  .filters select { flex: 0 1 200px; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 720px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.03em; position: sticky; top: 0; background: var(--card); }
+  tbody tr:hover { background: var(--card-hover); }
+  td.wrap-cell { white-space: normal; max-width: 220px; }
+  .results-count { padding: 10px 18px; color: var(--muted); font-size: 0.78rem; }
+
+  /* ---------- Toasts ---------- */
+  #toasts { position: fixed; bottom: 20px; right: 20px; z-index: 60; display: flex; flex-direction: column; gap: 8px; max-width: min(340px, calc(100vw - 40px)); }
+  .toast {
+    display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--radius-sm);
+    background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow-lg); font-size: 0.85rem;
+    animation: toast-in 0.2s ease;
+  }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .toast.success { border-left: 3px solid var(--success); }
+  .toast.error { border-left: 3px solid var(--danger); }
+  .toast .close-x { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; line-height: 1; }
+
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
-  <div id="gate" class="card">
+
+<div id="gate-screen">
+  <div id="gate">
+    <div class="gate-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+    </div>
     <h1>Log ind</h1>
-    <p class="sub">Adgangskode til event-administration</p>
-    <input type="password" id="secret" placeholder="Adgangskode">
-    <button onclick="login()">Log ind</button>
-    <p class="error" id="gate-error" hidden></p>
-  </div>
-
-  <div id="app" class="wrap" hidden>
-    <h1>Event booking</h1>
-    <p class="sub">Opret og redigér events + tider. Ændringer er live med det samme.</p>
-
-    <div class="card">
-      <h2 id="form-title">Nyt event</h2>
-      <label>Event-ID <span style="font-weight:400;color:var(--muted)">(bruges i temaeditoren, må ikke ændres bagefter)</span></label>
-      <input id="event_id" placeholder="fx run-event-2026">
-      <label>Titel</label>
-      <input id="title" placeholder="fx Løbeevent september 2026">
-      <label>Maks. antal ekstra personer pr. tilmelding <span style="font-weight:400;color:var(--muted)">(0 = kan kun tilmelde sig selv)</span></label>
-      <input id="max_guests" type="number" min="0" value="0">
-      <label>Tider</label>
-      <div id="slots"></div>
-      <button type="button" class="secondary" onclick="addSlotRow()">+ Tilføj tidspunkt</button>
-      <div class="row">
-        <button onclick="saveEvent()">Gem event</button>
-        <button type="button" class="secondary" onclick="resetForm()">Ryd formular</button>
+    <p class="sub">Adgang til event-administration</p>
+    <form id="gate-form">
+      <div class="field">
+        <label for="secret">Adgangskode</label>
+        <input type="password" id="secret" autocomplete="current-password" required>
       </div>
-      <p class="error" id="form-error" hidden></p>
-    </div>
-
-    <div class="card">
-      <h2>Eksisterende events</h2>
-      <div id="events-list">Henter …</div>
-    </div>
-
-    <div class="card">
-      <h2>Tilmeldinger</h2>
-      <label>Filtrér på event</label>
-      <select id="bookings-filter" onchange="loadBookings()"><option value="">Alle events</option></select>
-      <div id="bookings-list">Henter …</div>
-    </div>
+      <button type="submit" class="btn primary" style="width:100%" id="login-btn">Log ind</button>
+      <p class="form-error" id="gate-error" hidden role="alert"></p>
+    </form>
   </div>
+</div>
+
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"></path></svg>
+        </div>
+        <div class="brand-text">
+          <h1>Event booking</h1>
+          <div class="sub">Administration af løb og tilmeldinger</div>
+        </div>
+      </div>
+      <button type="button" class="icon-btn" id="logout-btn" title="Log ud" aria-label="Log ud">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="stats" id="stats">
+      <div class="stat-card"><div class="label">Events</div><div class="value" id="stat-events">–</div></div>
+      <div class="stat-card"><div class="label">Kommende tider</div><div class="value" id="stat-upcoming">–</div></div>
+      <div class="stat-card"><div class="label">Tilmeldinger</div><div class="value" id="stat-bookings">–</div></div>
+      <div class="stat-card"><div class="label">Fyldte pladser</div><div class="value" id="stat-fill">–</div></div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" id="tab-events-btn" role="tab" aria-selected="true" aria-controls="panel-events" onclick="switchTab('events')">
+        Events <span class="tab-count" id="tab-events-count">0</span>
+      </button>
+      <button class="tab-btn" id="tab-bookings-btn" role="tab" aria-selected="false" aria-controls="panel-bookings" onclick="switchTab('bookings')">
+        Tilmeldinger <span class="tab-count" id="tab-bookings-count">0</span>
+      </button>
+    </div>
+
+    <div class="panel active" id="panel-events" role="tabpanel" aria-labelledby="tab-events-btn">
+      <div class="card" id="form-card" hidden>
+        <div class="section-head">
+          <div>
+            <h2 id="form-title">Nyt event</h2>
+          </div>
+          <button type="button" class="icon-btn" aria-label="Luk formular" onclick="closeForm()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="form-body">
+          <div class="field-grid">
+            <div class="field">
+              <label for="event_id">Event-ID <span class="hint">(bruges i temaeditoren, må ikke ændres bagefter)</span></label>
+              <input id="event_id" placeholder="fx run-event-2026">
+            </div>
+            <div class="field">
+              <label for="max_guests">Maks. ekstra personer <span class="hint">(0 = kun sig selv)</span></label>
+              <input id="max_guests" type="number" min="0" value="0">
+            </div>
+          </div>
+          <div class="field">
+            <label for="title">Titel</label>
+            <input id="title" placeholder="fx Løbeevent september 2026">
+          </div>
+          <div class="field">
+            <label id="slots-label">Tider</label>
+            <div id="slots" aria-labelledby="slots-label"></div>
+            <button type="button" class="btn sm" style="margin-top:4px" onclick="addSlotRow()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Tilføj tidspunkt
+            </button>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" id="save-btn" onclick="saveEvent()">Gem event</button>
+            <button type="button" class="btn ghost" onclick="closeForm()">Annuller</button>
+          </div>
+          <p class="form-error" id="form-error" hidden role="alert"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>Events</h2>
+            <div class="sub">Opret, redigér og slet events og tider</div>
+          </div>
+          <button type="button" class="btn primary" onclick="openNewForm()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nyt event
+          </button>
+        </div>
+        <div class="events-body" id="events-list">
+          <div class="skeleton"><div class="skel-line" style="width:60%"></div><div class="skel-line" style="width:40%"></div><div class="skel-line" style="width:90%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-bookings" role="tabpanel" aria-labelledby="tab-bookings-btn">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>Tilmeldinger</h2>
+            <div class="sub">Overblik over alle tilmeldte deltagere</div>
+          </div>
+          <button type="button" class="btn" id="export-btn" onclick="exportCsv()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Eksportér CSV
+          </button>
+        </div>
+        <div class="filters">
+          <div class="search-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <label for="bookings-search" class="visually-hidden">Søg i tilmeldinger</label>
+            <input id="bookings-search" placeholder="Søg på navn, e-mail eller telefon…" oninput="renderBookings()">
+          </div>
+          <label for="bookings-filter" class="visually-hidden">Filtrér på event</label>
+          <select id="bookings-filter" onchange="loadBookings()"><option value="">Alle events</option></select>
+        </div>
+        <div class="results-count" id="bookings-count"></div>
+        <div class="table-scroll">
+          <div id="bookings-list">
+            <div class="skeleton"><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:70%"></div><div class="skel-line" style="width:75%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
 
 <script>
   let secret = sessionStorage.getItem('admin_secret') || '';
+  let allEvents = [];
+  let allBookings = [];
 
+  /* ---------- API ---------- */
   function api(path, opts = {}) {
     return fetch(path, { ...opts, headers: { ...(opts.headers || {}), 'x-admin-secret': secret, 'Content-Type': 'application/json' } })
       .then(async (res) => {
@@ -111,20 +402,71 @@
       });
   }
 
+  /* ---------- Toasts ---------- */
+  function toast(message, type = 'success') {
+    const wrap = document.getElementById('toasts');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    const iconPath = type === 'success'
+      ? '<path d="M20 6 9 17l-5-5"></path>'
+      : '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>';
+    const color = type === 'success' ? 'var(--success)' : 'var(--danger)';
+    el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px">${iconPath}</svg><span>${escapeHtml(message)}</span><button class="close-x" aria-label="Luk besked">&times;</button>`;
+    el.querySelector('.close-x').onclick = () => el.remove();
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  /* ---------- Auth ---------- */
+  document.getElementById('gate-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    login();
+  });
+
   function login() {
+    const btn = document.getElementById('login-btn');
     secret = document.getElementById('secret').value;
+    btn.disabled = true;
+    btn.textContent = 'Logger ind …';
     api('/api/admin/events').then(() => {
       sessionStorage.setItem('admin_secret', secret);
-      document.getElementById('gate').hidden = true;
+      document.getElementById('gate-screen').hidden = true;
       document.getElementById('app').hidden = false;
       loadEvents();
       loadBookings();
     }).catch(() => {
-      document.getElementById('gate-error').textContent = 'Forkert adgangskode.';
+      document.getElementById('gate-error').textContent = 'Forkert adgangskode. Prøv igen.';
       document.getElementById('gate-error').hidden = false;
+    }).finally(() => {
+      btn.disabled = false;
+      btn.textContent = 'Log ind';
     });
   }
 
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    sessionStorage.removeItem('admin_secret');
+    secret = '';
+    document.getElementById('app').hidden = true;
+    document.getElementById('gate-screen').hidden = false;
+    document.getElementById('secret').value = '';
+  });
+
+  /* ---------- Tabs ---------- */
+  function switchTab(name) {
+    const isEvents = name === 'events';
+    document.getElementById('panel-events').classList.toggle('active', isEvents);
+    document.getElementById('panel-bookings').classList.toggle('active', !isEvents);
+    document.getElementById('tab-events-btn').classList.toggle('active', isEvents);
+    document.getElementById('tab-events-btn').setAttribute('aria-selected', String(isEvents));
+    document.getElementById('tab-bookings-btn').classList.toggle('active', !isEvents);
+    document.getElementById('tab-bookings-btn').setAttribute('aria-selected', String(!isEvents));
+  }
+
+  /* ---------- Slot helpers ---------- */
   const MONTHS_DA = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
   function formatSlotLabel(dateStr, timeStr) {
@@ -133,13 +475,16 @@
     return `${d}. ${MONTHS_DA[m - 1]} kl. ${timeStr}`;
   }
 
-  // Existing slots were created with slot_id "YYYY-MM-DD-HHMM" (see
-  // scripts/sync-event.js), so editing an event can populate the date/time
-  // pickers straight from the stored id instead of losing that data.
   function parseSlotId(slotId) {
     const match = /^(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})$/.exec(slotId || '');
     if (!match) return null;
     return { date: match[1], time: `${match[2]}:${match[3]}` };
+  }
+
+  function isPastSlot(slotId) {
+    const parsed = parseSlotId(slotId);
+    if (!parsed) return false;
+    return new Date(`${parsed.date}T${parsed.time}:00`) < new Date();
   }
 
   function addSlotRow(slot) {
@@ -149,12 +494,14 @@
     entry.className = 'slot-entry';
     entry.innerHTML = `
       <div class="slot-row">
-        <input type="date" class="slot-date" value="${parsed?.date || ''}">
-        <input type="time" class="slot-time" value="${parsed?.time || ''}">
-        <input placeholder="Pladser" type="number" min="1" class="slot-capacity" value="${slot?.capacity || 25}">
-        <button type="button" class="secondary" onclick="this.closest('.slot-entry').remove()">×</button>
+        <input type="date" class="slot-date" value="${parsed?.date || ''}" aria-label="Dato">
+        <input type="time" class="slot-time" value="${parsed?.time || ''}" aria-label="Tidspunkt">
+        <input placeholder="Pladser" type="number" min="1" class="slot-capacity" value="${slot?.capacity || 25}" aria-label="Antal pladser">
+        <button type="button" class="icon-btn sm" aria-label="Fjern tidspunkt" onclick="this.closest('.slot-entry').remove()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+        </button>
       </div>
-      <p class="slot-preview" data-preview>${slot?.label ? 'Gemt som: ' + slot.label : 'Vælg dato og tid'}</p>
+      <p class="slot-preview" data-preview>${slot?.label ? 'Gemt som: ' + escapeHtml(slot.label) : 'Vælg dato og tid'}</p>
     `;
     const dateInput = entry.querySelector('.slot-date');
     const timeInput = entry.querySelector('.slot-time');
@@ -168,6 +515,17 @@
     wrap.appendChild(entry);
   }
 
+  /* ---------- Form ---------- */
+  function openNewForm() {
+    resetForm();
+    document.getElementById('form-card').hidden = false;
+    document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function closeForm() {
+    document.getElementById('form-card').hidden = true;
+  }
+
   function resetForm() {
     document.getElementById('form-title').textContent = 'Nyt event';
     document.getElementById('event_id').value = '';
@@ -175,18 +533,21 @@
     document.getElementById('title').value = '';
     document.getElementById('max_guests').value = 0;
     document.getElementById('slots').innerHTML = '';
+    document.getElementById('form-error').hidden = true;
     addSlotRow();
   }
 
   function editEvent(ev) {
-    document.getElementById('form-title').textContent = 'Redigér: ' + ev.title + ' (Event-nr. ' + ev.event_number + ')';
+    document.getElementById('form-title').textContent = 'Redigér: ' + ev.title;
     document.getElementById('event_id').value = ev.event_id;
     document.getElementById('event_id').disabled = true;
     document.getElementById('title').value = ev.title;
     document.getElementById('max_guests').value = ev.max_guests;
     document.getElementById('slots').innerHTML = '';
+    document.getElementById('form-error').hidden = true;
     ev.slots.forEach(addSlotRow);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('form-card').hidden = false;
+    document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function saveEvent() {
@@ -196,7 +557,18 @@
     const title = document.getElementById('title').value.trim();
     const max_guests = Number(document.getElementById('max_guests').value) || 0;
 
+    if (!event_id || !title) {
+      error.textContent = 'Udfyld event-ID og titel.';
+      error.hidden = false;
+      return;
+    }
+
     const entries = Array.from(document.querySelectorAll('.slot-entry'));
+    if (!entries.length) {
+      error.textContent = 'Tilføj mindst ét tidspunkt.';
+      error.hidden = false;
+      return;
+    }
     for (const entry of entries) {
       if (!entry.querySelector('.slot-date').value || !entry.querySelector('.slot-time').value) {
         error.textContent = 'Vælg både dato og tid for hvert tidspunkt.';
@@ -215,75 +587,217 @@
       };
     });
 
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Gemmer …';
+
     api('/api/admin/events', { method: 'POST', body: JSON.stringify({ event_id, title, max_guests, slots }) })
-      .then(() => { resetForm(); loadEvents(); loadBookings(); })
-      .catch((err) => { error.textContent = err.message; error.hidden = false; });
+      .then(() => {
+        closeForm();
+        toast('Eventet er gemt.', 'success');
+        loadEvents();
+        loadBookings();
+      })
+      .catch((err) => { error.textContent = err.message; error.hidden = false; })
+      .finally(() => { btn.disabled = false; btn.textContent = 'Gem event'; });
   }
 
-  function deleteEvent(eventId) {
-    if (!confirm('Slet eventet "' + eventId + '" og dets tider? Tilmeldinger bevares i oversigten.')) return;
+  function deleteEvent(eventId, eventTitle) {
+    if (!confirm(`Slet eventet "${eventTitle}" og dets tider? Tilmeldinger bevares i oversigten.`)) return;
     api('/api/admin/events', { method: 'DELETE', body: JSON.stringify({ event_id: eventId }) })
-      .then(() => { loadEvents(); loadBookings(); });
+      .then(() => {
+        toast('Eventet er slettet.', 'success');
+        loadEvents();
+        loadBookings();
+      })
+      .catch((err) => toast(err.message, 'error'));
   }
 
+  /* ---------- Events list + stats ---------- */
   function loadEvents() {
     api('/api/admin/events').then(({ events }) => {
-      const list = document.getElementById('events-list');
+      allEvents = events;
       const filter = document.getElementById('bookings-filter');
-      filter.innerHTML = '<option value="">Alle events</option>' + events.map(e => `<option value="${e.event_id}">${e.title}</option>`).join('');
+      const currentFilter = filter.value;
+      filter.innerHTML = '<option value="">Alle events</option>' + events.map(e => `<option value="${e.event_id}">${escapeHtml(e.title)}</option>`).join('');
+      filter.value = currentFilter;
 
-      if (!events.length) { list.textContent = 'Ingen events oprettet endnu.'; return; }
-      list.innerHTML = events.map(e => `
-        <div class="event">
-          <h3>${e.title} <span style="color:var(--muted);font-weight:400">#${e.event_number}</span></h3>
-          <div class="meta">Event-ID: <code>${e.event_id}</code> · Maks. ekstra personer: ${e.max_guests}</div>
-          <div class="slot-list">
-            ${e.slots.map(s => `<div><span>${s.label}</span><span>${s.booked}/${s.capacity} booket</span></div>`).join('') || '<div>Ingen tider</div>'}
-          </div>
-          <div class="row">
-            <button type="button" class="secondary" onclick='editEvent(${JSON.stringify(e).replace(/'/g, "&apos;")})'>Redigér</button>
-            <button type="button" class="danger" onclick="deleteEvent('${e.event_id}')">Slet</button>
-          </div>
-        </div>
-      `).join('');
-    });
+      renderEvents();
+      renderStats();
+      document.getElementById('tab-events-count').textContent = events.length;
+    }).catch((err) => toast(err.message, 'error'));
   }
 
+  function renderStats() {
+    document.getElementById('stat-events').textContent = allEvents.length;
+
+    let upcoming = 0, totalCapacity = 0, totalBooked = 0;
+    allEvents.forEach(e => e.slots.forEach(s => {
+      totalCapacity += Number(s.capacity) || 0;
+      totalBooked += Number(s.booked) || 0;
+      if (!isPastSlot(s.slot_id)) upcoming += 1;
+    }));
+
+    document.getElementById('stat-upcoming').textContent = upcoming;
+    document.getElementById('stat-bookings').textContent = totalBooked;
+    document.getElementById('stat-fill').innerHTML = totalCapacity
+      ? Math.round((totalBooked / totalCapacity) * 100) + '<small>%</small>'
+      : '–';
+  }
+
+  function renderEvents() {
+    const list = document.getElementById('events-list');
+    if (!allEvents.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <p>Ingen events oprettet endnu. Opret dit første event for at komme i gang.</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = allEvents.map(e => {
+      const sortedSlots = [...e.slots].sort((a, b) => a.slot_id.localeCompare(b.slot_id));
+      const slotsHtml = sortedSlots.map(s => {
+        const capacity = Number(s.capacity) || 0;
+        const booked = Number(s.booked) || 0;
+        const pct = capacity ? Math.min(100, Math.round((booked / capacity) * 100)) : 0;
+        const barClass = pct >= 100 ? 'full' : pct >= 75 ? 'warn' : '';
+        const past = isPastSlot(s.slot_id);
+        return `
+          <div class="slot-item">
+            <span class="slot-name">${escapeHtml(s.label)}${past ? '<span class="past-tag">Afholdt</span>' : ''}</span>
+            <span class="slot-count"><strong>${booked}</strong>/${capacity} booket</span>
+            <div class="bar-track"><div class="bar-fill ${barClass}" style="width:${pct}%"></div></div>
+          </div>`;
+      }).join('') || '<p class="sub" style="margin:0">Ingen tider tilføjet.</p>';
+
+      return `
+        <div class="event-item">
+          <div class="event-top">
+            <div>
+              <h3 class="event-title">${escapeHtml(e.title)}</h3>
+              <div class="event-meta">
+                <span class="badge num">#${e.event_number}</span>
+                <code>${escapeHtml(e.event_id)}</code>
+                <span>Maks. ekstra personer: ${e.max_guests}</span>
+              </div>
+            </div>
+            <div class="event-actions">
+              <button type="button" class="btn sm" onclick='editEvent(${JSON.stringify(e).replace(/'/g, "&apos;")})'>Redigér</button>
+              <button type="button" class="btn sm danger-outline" onclick="deleteEvent('${e.event_id}', '${escapeHtml(e.title).replace(/'/g, "&#39;")}')">Slet</button>
+            </div>
+          </div>
+          <div class="slot-list">${slotsHtml}</div>
+        </div>`;
+    }).join('');
+  }
+
+  /* ---------- Bookings ---------- */
   function loadBookings() {
     const eventId = document.getElementById('bookings-filter').value;
+    const list = document.getElementById('bookings-list');
+    list.innerHTML = '<div class="skeleton"><div class="skel-line" style="width:80%"></div><div class="skel-line" style="width:70%"></div><div class="skel-line" style="width:75%"></div></div>';
     api('/api/admin/bookings' + (eventId ? '?event_id=' + encodeURIComponent(eventId) : '')).then(({ bookings }) => {
-      const list = document.getElementById('bookings-list');
-      if (!bookings.length) { list.textContent = 'Ingen tilmeldinger endnu.'; return; }
-      list.innerHTML = `
-        <table>
-          <thead><tr><th>Navn</th><th>Email</th><th>Telefon</th><th>Event</th><th>Tidspunkt</th><th>Personer</th><th>Noter</th><th>Tilmeldt</th></tr></thead>
-          <tbody>
-            ${bookings.map(b => {
-              const guests = b.additional_names ? JSON.parse(b.additional_names) : [];
-              const people = b.party_size > 1 ? `${b.party_size} (${b.name} + ${guests.join(', ')})` : '1';
-              return `
-              <tr>
-                <td>${b.name}</td>
-                <td>${b.email}</td>
-                <td>${b.phone}</td>
-                <td>${b.event_title} #${b.event_number}</td>
-                <td>${b.slot_label || b.slot_id}</td>
-                <td>${people}</td>
-                <td>${b.notes || ''}</td>
-                <td>${new Date(b.created_at).toLocaleString('da-DK')}</td>
-              </tr>
-            `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
-    });
+      allBookings = bookings;
+      document.getElementById('tab-bookings-count').textContent = bookings.length;
+      renderBookings();
+    }).catch((err) => toast(err.message, 'error'));
   }
 
+  function filteredBookings() {
+    const q = document.getElementById('bookings-search').value.trim().toLowerCase();
+    if (!q) return allBookings;
+    return allBookings.filter(b =>
+      (b.name || '').toLowerCase().includes(q) ||
+      (b.email || '').toLowerCase().includes(q) ||
+      (b.phone || '').toLowerCase().includes(q)
+    );
+  }
+
+  function renderBookings() {
+    const bookings = filteredBookings();
+    const list = document.getElementById('bookings-list');
+    const countEl = document.getElementById('bookings-count');
+
+    if (!allBookings.length) {
+      countEl.textContent = '';
+      list.innerHTML = `
+        <div class="empty-state">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <p>Ingen tilmeldinger endnu.</p>
+        </div>`;
+      return;
+    }
+
+    countEl.textContent = bookings.length === allBookings.length
+      ? `${bookings.length} tilmelding${bookings.length === 1 ? '' : 'er'}`
+      : `${bookings.length} af ${allBookings.length} tilmeldinger`;
+
+    if (!bookings.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <p>Ingen tilmeldinger matcher søgningen.</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = `
+      <table>
+        <thead><tr><th>Navn</th><th>E-mail</th><th>Telefon</th><th>Event</th><th>Tidspunkt</th><th>Personer</th><th>Noter</th><th>Tilmeldt</th></tr></thead>
+        <tbody>
+          ${bookings.map(b => {
+            const guests = b.additional_names ? JSON.parse(b.additional_names) : [];
+            const people = b.party_size > 1 ? `${b.party_size} (${b.name} + ${guests.join(', ')})` : '1';
+            return `
+            <tr>
+              <td>${escapeHtml(b.name)}</td>
+              <td>${escapeHtml(b.email)}</td>
+              <td>${escapeHtml(b.phone)}</td>
+              <td>${escapeHtml(b.event_title)} #${b.event_number}</td>
+              <td>${escapeHtml(b.slot_label || b.slot_id)}</td>
+              <td>${escapeHtml(people)}</td>
+              <td class="wrap-cell">${escapeHtml(b.notes || '–')}</td>
+              <td>${new Date(b.created_at).toLocaleString('da-DK')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function exportCsv() {
+    const bookings = filteredBookings();
+    if (!bookings.length) { toast('Ingen tilmeldinger at eksportere.', 'error'); return; }
+
+    const header = ['Navn', 'Email', 'Telefon', 'Event', 'Tidspunkt', 'Personer', 'Noter', 'Tilmeldt'];
+    const csvEscape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = bookings.map(b => {
+      const guests = b.additional_names ? JSON.parse(b.additional_names) : [];
+      const people = b.party_size > 1 ? `${b.party_size} (${b.name} + ${guests.join(', ')})` : '1';
+      return [
+        b.name, b.email, b.phone, `${b.event_title} #${b.event_number}`,
+        b.slot_label || b.slot_id, people, b.notes || '', new Date(b.created_at).toLocaleString('da-DK'),
+      ].map(csvEscape).join(',');
+    });
+    const csv = '﻿' + [header.map(csvEscape).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tilmeldinger-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast(`${bookings.length} tilmelding${bookings.length === 1 ? '' : 'er'} eksporteret.`, 'success');
+  }
+
+  /* ---------- Init ---------- */
   addSlotRow();
   if (secret) {
     api('/api/admin/events').then(() => {
-      document.getElementById('gate').hidden = true;
+      document.getElementById('gate-screen').hidden = true;
       document.getElementById('app').hidden = false;
       loadEvents();
       loadBookings();

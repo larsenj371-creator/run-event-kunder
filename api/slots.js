@@ -47,6 +47,8 @@ module.exports = async function handler(req, res) {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Der opstod en fejl.' });
+    // See api/bookings.js: Shopify's App Proxy replaces 5xx responses with
+    // its own error page, so this must stay in the 4xx range.
+    res.status(400).json({ message: 'Der opstod en fejl.' });
   }
 };

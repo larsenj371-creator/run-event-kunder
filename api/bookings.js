@@ -124,7 +124,11 @@ module.exports = async function handler(req, res) {
       });
     } catch (err) {
       console.error('Shopify customer upsert failed:', err);
-      res.status(502).json({ message: 'Din booking kunne ikke gennemføres. Prøv venligst igen.' });
+      // Shopify's App Proxy silently swaps a 5xx response for its own
+      // branded error page (breaking res.json() on the client), so
+      // customer-facing failures here must stay in the 4xx range to get
+      // our actual message through.
+      res.status(400).json({ message: 'Din booking kunne ikke gennemføres. Prøv venligst igen.' });
       return;
     }
 
@@ -144,6 +148,6 @@ module.exports = async function handler(req, res) {
     res.status(200).json({ message: 'ok', customer_id: customerId, event_number: event.event_number });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Der opstod en fejl. Prøv venligst igen.' });
+    res.status(400).json({ message: 'Der opstod en fejl. Prøv venligst igen.' });
   }
 };

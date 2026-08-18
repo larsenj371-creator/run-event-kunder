@@ -161,6 +161,14 @@
     background: var(--card); color: var(--text); font-size: 0.92rem; min-height: 40px;
   }
   input::placeholder { color: var(--muted-2); }
+  /* Chrome/Safari force their own low-contrast text color on disabled
+     inputs regardless of `color` unless -webkit-text-fill-color is set
+     too — without this the locked event_id field was unreadable in dark
+     mode. */
+  input:disabled {
+    background: var(--bg); border-color: var(--border); cursor: not-allowed;
+    color: var(--text); opacity: 1; -webkit-text-fill-color: var(--text);
+  }
   .field { margin-bottom: 14px; }
   .field-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
   @media (max-width: 600px) { .field-grid { grid-template-columns: 1fr; } }

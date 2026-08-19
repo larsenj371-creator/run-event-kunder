@@ -47,6 +47,7 @@ module.exports = async function handler(req, res) {
     event_id: eventId,
     slot_id: slotId,
     privacy_consent: consent,
+    marketing_consent: marketingConsent,
     notes,
     additional_names: rawAdditionalNames,
   } = body;
@@ -121,6 +122,7 @@ module.exports = async function handler(req, res) {
         slotLabel: slot.label,
         notes,
         additionalNames,
+        marketingConsent: Boolean(marketingConsent),
       });
     } catch (err) {
       console.error('Shopify customer upsert failed:', err);

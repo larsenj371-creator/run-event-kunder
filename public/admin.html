@@ -582,6 +582,7 @@
     if (document.getElementById('app').hidden) return; // not logged in yet
     const hash = location.hash.replace(/^#\/?/, '');
     const [path, param] = hash.split('/');
+    currentDetailEventId = null; // re-set below only for the #/event/<id> route
 
     if (path === 'new') {
       resetForm();
@@ -837,12 +838,26 @@
     renderBookingsTable(
       document.getElementById('bookings-list'),
       document.getElementById('bookings-count'),
-      filteredBookings(), allBookings.length, { showEvent: true }
+      filteredBookings(), allBookings.length, { showEvent: true, onDeleted: loadBookings }
     );
   }
 
-  // Shared by the "all bookings" view and each event's detail page.
-  function renderBookingsTable(list, countEl, bookings, totalCount, { showEvent }) {
+  function removeBooking(id, name) {
+    if (!confirm(`Fjern ${name}s tilmelding? Det frigiver pladsen igen.`)) return;
+    api('/api/admin/bookings', { method: 'DELETE', body: JSON.stringify({ id }) })
+      .then(() => {
+        toast('Deltager fjernet.', 'success');
+        currentBookingsReload();
+      })
+      .catch((err) => toast(err.message, 'error'));
+  }
+
+  // Shared by the "all bookings" view and each event's detail page. Set as
+  // a module-level ref rather than threaded through every call, since only
+  // one bookings table is ever visible at a time.
+  let currentBookingsReload = () => {};
+  function renderBookingsTable(list, countEl, bookings, totalCount, { showEvent, onDeleted }) {
+    currentBookingsReload = onDeleted || (() => {});
     if (!totalCount) {
       countEl.textContent = '';
       list.innerHTML = `
@@ -868,11 +883,12 @@
 
     list.innerHTML = `
       <table>
-        <thead><tr><th>Navn</th><th>E-mail</th><th>Telefon</th>${showEvent ? '<th>Event</th>' : ''}<th>Tidspunkt</th><th>Personer</th><th>Noter</th><th>Tilmeldt</th></tr></thead>
+        <thead><tr><th>Navn</th><th>E-mail</th><th>Telefon</th>${showEvent ? '<th>Event</th>' : ''}<th>Tidspunkt</th><th>Personer</th><th>Noter</th><th>Tilmeldt</th><th></th></tr></thead>
         <tbody>
           ${bookings.map(b => {
             const guests = b.additional_names ? JSON.parse(b.additional_names) : [];
             const people = b.party_size > 1 ? `${b.party_size} (${b.name} + ${guests.join(', ')})` : '1';
+            const safeName = escapeHtml(b.name).replace(/'/g, "&#39;");
             return `
             <tr>
               <td>${escapeHtml(b.name)}</td>
@@ -883,6 +899,7 @@
               <td>${escapeHtml(people)}</td>
               <td class="wrap-cell">${escapeHtml(b.notes || '–')}</td>
               <td>${new Date(b.created_at).toLocaleString('da-DK')}</td>
+              <td><button type="button" class="btn sm danger-outline" onclick="removeBooking(${b.id}, '${safeName}')">Fjern</button></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -968,7 +985,8 @@
     renderBookingsTable(
       document.getElementById('detail-bookings-list'),
       document.getElementById('detail-count'),
-      filtered, detailBookings.length, { showEvent: false }
+      filtered, detailBookings.length,
+      { showEvent: false, onDeleted: () => { loadDetailBookings(currentDetailEventId); loadEvents(); } }
     );
   }
 

@@ -106,6 +106,19 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // Checked here, before touching Shopify at all, so a repeat booking on
+    // the same slot never re-tags/re-registers the customer or adds a
+    // duplicate entry to their booking history (which would also re-fire
+    // the Flow "metafield updated" trigger and send a second confirmation
+    // email for a booking that didn't actually go through).
+    const { rows: existingRows } = await sql`
+      SELECT 1 FROM bookings WHERE event_id = ${eventId} AND slot_id = ${slotId} AND email = ${email}
+    `;
+    if (existingRows.length) {
+      res.status(409).json({ message: 'Du er allerede tilmeldt dette tidspunkt.' });
+      return;
+    }
+
     const fullName = name || `${firstName} ${lastName}`.trim();
 
     let customerId;
@@ -140,6 +153,10 @@ module.exports = async function handler(req, res) {
         VALUES (${eventId}, ${slotId}, ${fullName}, ${email}, ${phone}, ${notes || null}, ${partySize}, ${additionalNames.length ? JSON.stringify(additionalNames) : null}, ${customerId})
       `;
     } catch (err) {
+      // Rare fallback for the race window between the existingRows check
+      // above and this insert (two simultaneous duplicate submissions).
+      // The customer has already been re-tagged in this narrow case —
+      // accepted, same trade-off as the capacity race noted above.
       if (String(err.message).includes('bookings_event_id_slot_id_email_key')) {
         res.status(409).json({ message: 'Du er allerede tilmeldt dette tidspunkt.' });
         return;
